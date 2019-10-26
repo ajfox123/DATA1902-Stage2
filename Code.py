@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 from math import sqrt
 from sklearn import metrics, neighbors, linear_model, model_selection
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from patsy import dmatrices
 import matplotlib.pyplot as plt
 
@@ -19,46 +19,57 @@ import matplotlib.pyplot as plt
 df = pd.read_csv('Output.csv')
 df = df.dropna()
 
+mens_data = df.loc[df['Sex'] == "M", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
+womens_data = df.loc[df['Sex'] == "F", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
+
 dfs = dict(tuple(df.groupby('Sport')))
+sport_accuracy_preds = []
+for sport in dfs:
+    this_sport = df[df['Sport']==sport]
+    not_this_sport = df[df['Sport'] != sport]
 
-weightlifters = df[df['Sport']=='Weightlifting']
-non_weightlifters = df[df['Sport'] != 0]
+    this_sport_heights = this_sport.values[:, 5]
+    this_sport_weights = this_sport.values[:, 6]
+    not_this_sport_heights =not_this_sport.values[:, 5]
+    not_this_sport_weights = not_this_sport.values[:, 6]
+    
+    plt.figure(figsize=(10,10))
+    title = sport+' and Non-'+sport+' Height and Weight'
+    plt.title(title)
+    plt.scatter(not_this_sport_weights, not_this_sport_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
+    plt.scatter(this_sport_weights, this_sport_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
+    plt.legend(loc = 'lower right')
+    plt.xlabel('Weight (kg)')
+    plt.ylabel('Height (cm)')
+    plt.show()
+    mens_data['target'] = np.where(mens_data['Sport'] == sport, 1, 0)
 
-weightlifters_weights = weightlifters.values[:, 5]
-weightlifters_heights = weightlifters.values[:, 6]
-non_weightlifters_weights = non_weightlifters.values[:, 5]
-non_weightlifters_heights = non_weightlifters.values[:, 6]
+    Y, X = dmatrices('target ~ 0 + Weight + Height', data = mens_data, return_type = 'dataframe')
+    y = Y['target'].values
 
-plt.scatter(weightlifters_weights, weightlifters_heights, color='#e9a3c9', marker = 'o', label = 'Weightlifter', alpha=1)
-plt.scatter(non_weightlifters_weights, non_weightlifters_heights, color='#91bfdb', marker = 'x', label = 'Non-weightlifter', alpha=0.2)
-plt.legend(loc = 'lower right')
-plt.show()
+    kfold = model_selection.StratifiedKFold(n_splits = 5, shuffle = True).split(X, y)
+
+    model = neighbors.KNeighborsClassifier(n_neighbors = 18)
+
+    accuracies = []
+    for train, holdout in kfold:
+        model.fit(X.iloc[train], y[train])
+        prediction_on_test = model.predict(X.iloc[holdout])
+        accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
+
+    print(np.mean(accuracies))
+    sport_accuracy_preds.append((sport, np.mean(accuracies)))
+print(sport_accuracy_preds)
+'''
 #for event in dfs:
     #print(event)
     #medal_winners = dfs[sport]
     #print(medal_winners[medal_winners['Medal_Won']==1].head().to_string())
-
-
 '''
-data1 = df.loc[df['Sex'] == "M", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
-data1['target'] = np.where(data1['Sport'] == 'Weightlifting', 1, 0)
 
-Y, X = dmatrices('target ~ 0 + Weight + Height', data = data1, return_type = 'dataframe')
-y = Y['target'].values
-accuracies = []
-print(Y,X)
-kfold = model_selection.StratifiedKFold(n_splits = 4, shuffle = True).split(X, y)
 
-model = neighbors.KNeighborsClassifier(n_neighbors = 2,
-                                      p = 2,
-                                      weights = 'uniform')
 
-for train, holdout in kfold:
-    model.fit(X.iloc[train], y[train])
-    prediction_on_test = model.predict(X.iloc[holdout])
-    accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
 
-print(np.mean(accuracies))'''
 
 athletics = df.loc[df['Sex'] == 'M', ['Sport', 'Age', 'Weight', 'Height']].drop_duplicates()
 features = ['Age', 'Height', 'Weight']
