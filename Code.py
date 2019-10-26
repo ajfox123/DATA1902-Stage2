@@ -19,6 +19,35 @@ import matplotlib.pyplot as plt
 df = pd.read_csv('Output.csv')
 df = df.dropna()
 
+identify_team_events = pd.pivot_table(df,
+                                      index = ['Team', 'Year', 'Event'],
+                                      columns = 'Medal',
+                                      values = 'Medal_Won',
+                                      aggfunc = 'sum',
+                                      fill_value = 0).drop('No Medal', axis = 1).reset_index()
+identify_team_events = identify_team_events.loc[identify_team_events['Gold'] > 1, :]
+team_sports = identify_team_events['Event'].unique()
+remove_sports = ["Gymnastics Women's Balance Beam", "Gymnastics Men's Horizontal Bar", 
+                 "Swimming Women's 100 metres Freestyle", "Swimming Men's 50 metres Freestyle"]
+team_sports = list(set(team_sports) - set(remove_sports))
+team_event_mask = df['Event'].map(lambda x: x in team_sports)
+single_event_mask = [not i for i in team_event_mask]
+medal_mask = df['Medal_Won'] == 1
+df['Team_Event'] = np.where(team_event_mask & medal_mask, 1, 0)
+df['Single_Event'] = np.where(single_event_mask & medal_mask, 1, 0)
+df['Event_Category'] = df['Single_Event'] + df['Team_Event']
+
+medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Won', 'Event_Category']].agg('sum').reset_index()
+medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
+medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
+
+
+
+
+
+
+
+
 mens_data = df.loc[df['Sex'] == "M", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 womens_data = df.loc[df['Sex'] == "F", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 
@@ -59,18 +88,13 @@ for sport in dfs:
 
     print(np.mean(accuracies))
     sport_accuracy_preds.append((sport, np.mean(accuracies)))
-print(sport_accuracy_preds)
+
+
+
+
+
+
 '''
-#for event in dfs:
-    #print(event)
-    #medal_winners = dfs[sport]
-    #print(medal_winners[medal_winners['Medal_Won']==1].head().to_string())
-'''
-
-
-
-
-
 athletics = df.loc[df['Sex'] == 'M', ['Sport', 'Age', 'Weight', 'Height']].drop_duplicates()
 features = ['Age', 'Height', 'Weight']
 athletics['target'] = np.where(athletics['Sport'] == 'Weightlifting', 1, 0)
@@ -84,7 +108,7 @@ mse = metrics.mean_squared_error(y_test, y_pred)
 print("RMSE:", sqrt(mse))
 print("R-squared score:", metrics.r2_score(y_test, y_pred))
 
-'''
+
 clf = linear_model.LogisticRegression(solver='liblinear').fit(X_train, y_train)
 y_pred = clf.predict(X_test)
 y_pred_proba = clf.predict_proba(X_test)
