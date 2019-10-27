@@ -14,6 +14,8 @@ from sklearn import metrics, neighbors, linear_model, model_selection
 from sklearn.model_selection import train_test_split, GridSearchCV
 from patsy import dmatrices
 import matplotlib.pyplot as plt
+from bokeh.plotting import figure, show, output_file
+from bokeh.palettes import Spectral4
 
 #Reading the data from Olympics, country regions, country GDPs and country populations
 df = pd.read_csv('Output.csv')
@@ -41,13 +43,73 @@ medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Wo
 medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
 medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
 
+top_countries = ['USA', 'China', 'Russia', 'Germany', 'Australia']
+
+countries = df['Team'].unique()
+
+top_countries_mask = df['Team'].map(lambda x: x in top_countries)
+
+year_team_athelete = df.loc[top_countries_mask, ['Year', 'Team', 'Name']].drop_duplicates()
+contingent_size = pd.pivot_table(year_team_athelete,
+                                 index = 'Year',
+                                 columns = 'Team',
+                                 values = 'Name',
+                                 aggfunc = 'count')
+year_team_medals = pd.pivot_table(medal_tally,
+                                  index = 'Year',
+                                  columns = 'Team',
+                                  values = 'Medal_Won_Corrected',
+                                  aggfunc = 'sum')[countries]
 
 
+for country in top_countries:
+    contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'red', label = 'Contingent Size')
+    year_team_medals[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'black', label = 'Medal Tally')
+    plt.xlabel('Olympic Year')
+    plt.ylabel('Number of Athletes/Medal Tally')
+    plt.title('Team '+country+'\nContingent Size vs Medal Tally')
+    plt.legend(loc = 'best')
+    plt.show()
 
 
+year_team_medals_unstack = year_team_medals.unstack().reset_index()
+year_team_medals_unstack.columns = ['Team','Year', 'Medal_Count']
+contingent_size_unstack = contingent_size.unstack().reset_index()
+contingent_size_unstack.columns = ['Team','Year', 'Contingent']
+contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
+                                                 left_on = ['Team', 'Year'],
+                                                 right_on = ['Team', 'Year'])
+print(contingent_medals)
+print(contingent_medals[['Contingent', 'Medal_Count']].corr())
 
 
+'''
+year_team_gdp = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
 
+medal_tally_gdp = medal_tally.merge(year_team_gdp,
+                                   left_on = ['Year', 'Team'],
+                                   right_on = ['Year', 'Team'],
+                                   how = 'left')
+
+row_mask_5 = medal_tally_gdp['Medal_Won_Corrected'] > 0
+
+
+correlation = medal_tally_gdp.loc[row_mask_5, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
+
+plt.scatter(medal_tally_gdp.loc[row_mask_5, 'Population'], 
+     medal_tally_gdp.loc[row_mask_5, 'Medal_Won_Corrected'] , 
+     marker = 'o',
+    alpha = 0.4)
+plt.xlabel('Country Pop')
+plt.ylabel('Number of Medals')
+plt.title('Population versus medal tally')
+plt.text(np.nanpercentile(medal_tally_gdp['Population'], 99.6), 
+     max(medal_tally_gdp['Medal_Won_Corrected']) - 50,
+     "Correlation = " + str(correlation))
+'''
+
+
+'''
 mens_data = df.loc[df['Sex'] == "M", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 womens_data = df.loc[df['Sex'] == "F", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 
@@ -88,7 +150,7 @@ for sport in dfs:
 
     print(np.mean(accuracies))
     sport_accuracy_preds.append((sport, np.mean(accuracies)))
-
+'''
 
 
 
