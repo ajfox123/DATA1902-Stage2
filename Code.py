@@ -72,11 +72,11 @@ female_data = df[df['Sex'] == "F"]
 
 
 
-
 #Plotting height/weight of medal winners
 all_sports = dict(tuple(df.groupby('Sport')))
+print(len(all_sports))
+
 specific_sports = ['Athletics', 'Basketball', 'Weightlifting', 'Gymnastics']
-sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
     winners = this_sport[this_sport['Medal_Won'] == 1]
@@ -89,8 +89,8 @@ for sport in specific_sports:
     plt.figure(figsize=(10,10))
     title = 'Medal-Winners and Non-Medal-Winners Height and Weight for '+sport
     plt.title(title)
-    plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
-    plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
+    plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-medal winner', alpha=0.5)
+    plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = 'Medal winner', alpha=0.5)
     plt.legend(loc = 'lower right')
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')
@@ -108,12 +108,12 @@ medal_tally_pop = medal_tally.merge(year_team_pop,
                                    right_on = ['Year', 'Team'],
                                    how = 'left')
 
-row_mask_5 = medal_tally_pop['Medal_Won_Corrected'] > 0
+medal_mask = medal_tally_pop['Medal_Won_Corrected'] > 0
 
-correlation = medal_tally_pop.loc[row_mask_5, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
+correlation = medal_tally_pop.loc[medal_mask, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
 plt.figure(figsize=(10,10))
-plt.scatter(medal_tally_pop.loc[row_mask_5, 'Population'], 
-            medal_tally_pop.loc[row_mask_5, 'Medal_Won_Corrected'] , 
+plt.scatter(medal_tally_pop.loc[medal_mask, 'Population'], 
+            medal_tally_pop.loc[medal_mask, 'Medal_Won_Corrected'] , 
             marker = 'o',
             alpha = 0.4)
 plt.xlabel('Country Population')
@@ -135,7 +135,7 @@ for country in top_countries:
     contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'red', label = 'Contingent Size')
     year_team_medals[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'black', label = 'Medal Tally')
     plt.xlabel('Olympic Year')
-    plt.ylabel('Number of Athletes/Medal Tally')
+    plt.ylabel('Contingent Size/Medal Tally')
     plt.title('Team '+country+'\nContingent Size vs Medal Tally')
     plt.legend(loc = 'best')
     plt.show()
