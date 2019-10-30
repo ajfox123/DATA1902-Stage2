@@ -22,9 +22,6 @@ import statsmodels.api as sm
 df = pd.read_csv('Output.csv')
 df = df.dropna()
 
-medal_mappings = {'No Medal':0, 'Bronze':1, 'Silver':3, 'Gold':5}
-df['Weighted_Medal'] = df['Medal'].map(medal_mappings)
-
 team_events = pd.pivot_table(df,
                              index = ['Team', 'Year', 'Event'],
                              columns = 'Medal',
@@ -34,8 +31,10 @@ team_events = pd.pivot_table(df,
 
 team_events = team_events.loc[team_events['Gold'] > 1, :]
 team_event = team_events['Event'].unique()
-remove_events = ["Gymnastics Women's Balance Beam", "Gymnastics Men's Horizontal Bar", 
-                 "Swimming Women's 100 metres Freestyle", "Swimming Men's 50 metres Freestyle"]
+remove_events = ["Gymnastics Men's Horizontal Bar",
+                 "Gymnastics Women's Balance Beam",
+                 "Swimming Women's 100 metres Freestyle",
+                 "Swimming Men's 50 metres Freestyle"]
 team_events = list(set(team_events) - set(remove_events))
 team_event_mask = df['Event'].map(lambda x: x in team_events)
 single_event_mask = [not i for i in team_event_mask]
@@ -76,7 +75,7 @@ female_data = df[df['Sex'] == "F"]
 
 #Plotting height/weight of medal winners
 all_sports = dict(tuple(df.groupby('Sport')))
-specific_sports = ['Athletics', 'Basketball', 'Weightlifting', 'Rhythmic Gymnastics', 'Gymnastics']
+specific_sports = ['Athletics', 'Basketball', 'Weightlifting', 'Gymnastics']
 sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
@@ -112,7 +111,7 @@ medal_tally_pop = medal_tally.merge(year_team_pop,
 row_mask_5 = medal_tally_pop['Medal_Won_Corrected'] > 0
 
 correlation = medal_tally_pop.loc[row_mask_5, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
-
+plt.figure(figsize=(10,10))
 plt.scatter(medal_tally_pop.loc[row_mask_5, 'Population'], 
             medal_tally_pop.loc[row_mask_5, 'Medal_Won_Corrected'] , 
             marker = 'o',
@@ -120,9 +119,9 @@ plt.scatter(medal_tally_pop.loc[row_mask_5, 'Population'],
 plt.xlabel('Country Population')
 plt.ylabel('Number of Medals')
 plt.title('Population versus medal tally')
-plt.text(np.nanpercentile(medal_tally_pop['Population'], 99.6), 
-     max(medal_tally_pop['Medal_Won_Corrected']) - 50,
-     "Correlation = " + str(correlation))
+plt.text(np.nanpercentile(medal_tally_pop['Population'], 98.6), 
+         max(medal_tally_pop['Medal_Won_Corrected']) - 50,
+         "Correlation = " + str(correlation),)
 plt.show()
 
 
@@ -185,27 +184,6 @@ plt.show()
 
 
 
-#Linear Regression model for athlete winning a medal in a sport
-for target_sport in specific_sports:
-    mens_data = df.loc[df['Sport'] == target_sport].drop_duplicates()
-    features = ['Team', 'Height', 'Age', 'Weight', 'Population']
-    y = mens_data['Weighted_Medal']
-    X = mens_data[features]
-    X = pd.get_dummies(data=X, drop_first=True)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
-    regr = linear_model.LinearRegression().fit(X_train, y_train)
-    # Use the model to predict y from X_test
-    y_pred = regr.predict(X_test)
-    # Root mean squared error
-    rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
-    r2 = metrics.r2_score(y_test, y_pred)
-    print("Linear Regression")
-    print('Root mean squared error (RMSE):', rmse)
-    print('R-squared score:', r2)
-
-
-
-
 year_team_gender = df.loc[:,['Year','Team', 'Name', 'Sex']].drop_duplicates()
 year_team_gender_count = pd.pivot_table(year_team_gender,
                                         index = ['Year', 'Team'],
@@ -231,22 +209,40 @@ medal_pop_contingent = medal_pop.merge(year_team_contingent,
                                                      how = 'left')
 print(medal_pop_contingent.head())
 
-
+plt.figure(figsize=(10,10))
+print(medal_pop_contingent.shape)
 medal_pop_contingent['Population'].hist(bins = 15)
+plt.title('Population Histogram for Countries')
+plt.xlabel('Population Size Bins')
+plt.ylabel('Number of Countries')
+plt.show()
+
 medal_pop_contingent['Log_Population'] = np.log(medal_pop_contingent['Population'])
+
+
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Total_Athletes', 
+                 data = medal_pop_contingent,
+                 return_type = 'dataframe')
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+model = sm.OLS(y_train, X_train)
+result = model.fit()
+
+print(result.summary())
+
+y_predicted = result.predict(X)
+print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
 
 
 y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Total_Athletes + Team', 
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
-
 model = sm.OLS(y, X)
 result = model.fit()
 
 print(result.summary())
 
-
-
+y_predicted = result.predict(X)
+print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
 
 
 
@@ -370,6 +366,25 @@ female_stats = {'largest_avg_height':['',np.NINF],
          'lowest_std_age':['',np.inf]
          }
 
+#Linear Regression model for athlete winning a medal in a sport
+for target_sport in specific_sports:
+    mens_data = df.loc[df['Sport'] == target_sport].drop_duplicates()
+    features = ['Team', 'Height', 'Age', 'Weight', 'Population']
+    y = mens_data['Weighted_Medal']
+    X = mens_data[features]
+    X = pd.get_dummies(data=X, drop_first=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    regr = linear_model.LinearRegression().fit(X_train, y_train)
+    # Use the model to predict y from X_test
+    y_pred = regr.predict(X_test)
+    # Root mean squared error
+    rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
+    r2 = metrics.r2_score(y_test, y_pred)
+    print("Linear Regression")
+    print('Root mean squared error (RMSE):', rmse)
+    print('R-squared score:', r2)
+    
+    
 male_sports = dict(tuple(male_data.groupby('Sport')))
 for sport in male_sports:
     avg_height = round(np.mean(male_sports[sport]['Height']))
