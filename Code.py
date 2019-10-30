@@ -172,7 +172,7 @@ print("Female stats:",female_stats)
 
 #Plotting height/weight for each sport vs all other athletes
 all_sports = dict(tuple(df.groupby('Sport')))
-specific_sports = ['Athletics', 'Basketball', 'Weightlifting','Rhythmic Gymnastics']
+specific_sports = ['Athletics', 'Basketball', 'Weightlifting','Rhythmic Gymnastics', 'Gymnastics']
 sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
