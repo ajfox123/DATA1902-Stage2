@@ -71,105 +71,6 @@ female_data = df[df['Sex'] == "F"]
 
 
 
-#Some statistics for height/weight/age in each sport by sex
-male_stats = {'largest_avg_height':['',np.NINF],
-         'lowest_avg_height':['',np.inf],
-         'largest_avg_weight':['',np.NINF],
-         'lowest_avg_weight':['',np.inf],
-         'largest_avg_age':['',np.NINF],
-         'lowest_avg_age':['',np.inf],
-         'largest_std_height':['',np.NINF],
-         'lowest_std_height':['',np.inf],
-         'largest_std_weight':['',np.NINF],
-         'lowest_std_weight':['',np.inf],
-         'largest_std_age':['',np.NINF],
-         'lowest_std_age':['',np.inf]
-         }
-female_stats = {'largest_avg_height':['',np.NINF],
-         'lowest_avg_height':['',np.inf],
-         'largest_avg_weight':['',np.NINF],
-         'lowest_avg_weight':['',np.inf],
-         'largest_avg_age':['',np.NINF],
-         'lowest_avg_age':['',np.inf],
-         'largest_std_height':['',np.NINF],
-         'lowest_std_height':['',np.inf],
-         'largest_std_weight':['',np.NINF],
-         'lowest_std_weight':['',np.inf],
-         'largest_std_age':['',np.NINF],
-         'lowest_std_age':['',np.inf]
-         }
-
-male_sports = dict(tuple(male_data.groupby('Sport')))
-for sport in male_sports:
-    avg_height = round(np.mean(male_sports[sport]['Height']))
-    avg_weight = round(np.mean(male_sports[sport]['Weight']))
-    avg_age = round(np.mean(male_sports[sport]['Age']))
-    std_height = round(np.std(male_sports[sport]['Height']))
-    std_weight = round(np.std(male_sports[sport]['Weight']))
-    std_age = round(np.std(male_sports[sport]['Age']))
-    if avg_height > male_stats['largest_avg_height'][1]:
-        male_stats['largest_avg_height'] = [sport, avg_height]
-    if avg_height < male_stats['lowest_avg_height'][1]:
-        male_stats['lowest_avg_height'] = [sport, avg_height]
-    if avg_weight > male_stats['largest_avg_weight'][1]:
-        male_stats['largest_avg_weight'] = [sport, avg_weight]
-    if avg_weight < male_stats['lowest_avg_weight'][1]:
-        male_stats['lowest_avg_weight'] = [sport, avg_weight]
-    if avg_age > male_stats['largest_avg_age'][1]:
-        male_stats['largest_avg_age'] = [sport, avg_age]
-    if avg_age < male_stats['lowest_avg_age'][1]:
-        male_stats['lowest_avg_age'] = [sport, avg_age]
-    if std_height > male_stats['largest_std_height'][1]:
-        male_stats['largest_std_height'] = [sport, std_height]
-    if std_height < male_stats['lowest_std_height'][1]:
-        male_stats['lowest_std_height'] = [sport, std_height]
-    if std_height > male_stats['largest_std_weight'][1]:
-        male_stats['largest_std_weight'] = [sport, std_weight]
-    if std_weight < male_stats['lowest_std_weight'][1]:
-        male_stats['lowest_std_weight'] = [sport, std_weight]
-    if std_age > male_stats['largest_std_age'][1]:
-        male_stats['largest_std_age'] = [sport, std_age]
-    if std_age < male_stats['lowest_std_age'][1]:
-        male_stats['lowest_std_age'] = [sport, std_age]
-        
-female_sports = dict(tuple(female_data.groupby('Sport')))
-for sport in female_sports:
-    avg_height = round(np.mean(female_sports[sport]['Height']))
-    avg_weight = round(np.mean(female_sports[sport]['Weight']))
-    avg_age = round(np.mean(female_sports[sport]['Age']))
-    std_height = round(np.std(female_sports[sport]['Height']))
-    std_weight = round(np.std(female_sports[sport]['Weight']))
-    std_age = round(np.std(female_sports[sport]['Age']))
-    if avg_height > female_stats['largest_avg_height'][1]:
-        female_stats['largest_avg_height'] = [sport, avg_height]
-    if avg_height < female_stats['lowest_avg_height'][1]:
-        female_stats['lowest_avg_height'] = [sport, avg_height]
-    if avg_weight > female_stats['largest_avg_weight'][1]:
-        female_stats['largest_avg_weight'] = [sport, avg_weight]
-    if avg_weight < female_stats['lowest_avg_weight'][1]:
-        female_stats['lowest_avg_weight'] = [sport, avg_weight]
-    if avg_age > female_stats['largest_avg_age'][1]:
-        female_stats['largest_avg_age'] = [sport, avg_age]
-    if avg_age < female_stats['lowest_avg_age'][1]:
-        female_stats['lowest_avg_age'] = [sport, avg_age]
-    if std_height > female_stats['largest_std_height'][1]:
-        female_stats['largest_std_height'] = [sport, std_height]
-    if std_height < female_stats['lowest_std_height'][1]:
-        female_stats['lowest_std_height'] = [sport, std_height]
-    if std_height > female_stats['largest_std_weight'][1]:
-        female_stats['largest_std_weight'] = [sport, std_weight]
-    if std_weight < female_stats['lowest_std_weight'][1]:
-        female_stats['lowest_std_weight'] = [sport, std_weight]
-    if std_age > female_stats['largest_std_age'][1]:
-        female_stats['largest_std_age'] = [sport, std_age]
-    if std_age < female_stats['lowest_std_age'][1]:
-        female_stats['lowest_std_age'] = [sport, std_age]
-print("Male stats:",male_stats)
-print("Female stats:",female_stats)
-
-
-
-
 
 #Plotting height/weight for each sport vs all other athletes
 all_sports = dict(tuple(df.groupby('Sport')))
@@ -185,7 +86,7 @@ for sport in specific_sports:
     non_winners_weights = non_winners.values[:, 6]
     
     plt.figure(figsize=(10,10))
-    title = sport+' and Non-'+sport+' Height and Weight'
+    title = 'Medal-Winners and Non-Medal-Winners Height and Weight for',sport
     plt.title(title)
     plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
     plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
@@ -383,7 +284,101 @@ year_team_medals = pd.pivot_table(medal_tally,
                                   aggfunc = 'sum')[countries]
 
 
+#Some statistics for height/weight/age in each sport by sex
+male_stats = {'largest_avg_height':['',np.NINF],
+         'lowest_avg_height':['',np.inf],
+         'largest_avg_weight':['',np.NINF],
+         'lowest_avg_weight':['',np.inf],
+         'largest_avg_age':['',np.NINF],
+         'lowest_avg_age':['',np.inf],
+         'largest_std_height':['',np.NINF],
+         'lowest_std_height':['',np.inf],
+         'largest_std_weight':['',np.NINF],
+         'lowest_std_weight':['',np.inf],
+         'largest_std_age':['',np.NINF],
+         'lowest_std_age':['',np.inf]
+         }
+female_stats = {'largest_avg_height':['',np.NINF],
+         'lowest_avg_height':['',np.inf],
+         'largest_avg_weight':['',np.NINF],
+         'lowest_avg_weight':['',np.inf],
+         'largest_avg_age':['',np.NINF],
+         'lowest_avg_age':['',np.inf],
+         'largest_std_height':['',np.NINF],
+         'lowest_std_height':['',np.inf],
+         'largest_std_weight':['',np.NINF],
+         'lowest_std_weight':['',np.inf],
+         'largest_std_age':['',np.NINF],
+         'lowest_std_age':['',np.inf]
+         }
 
+male_sports = dict(tuple(male_data.groupby('Sport')))
+for sport in male_sports:
+    avg_height = round(np.mean(male_sports[sport]['Height']))
+    avg_weight = round(np.mean(male_sports[sport]['Weight']))
+    avg_age = round(np.mean(male_sports[sport]['Age']))
+    std_height = round(np.std(male_sports[sport]['Height']))
+    std_weight = round(np.std(male_sports[sport]['Weight']))
+    std_age = round(np.std(male_sports[sport]['Age']))
+    if avg_height > male_stats['largest_avg_height'][1]:
+        male_stats['largest_avg_height'] = [sport, avg_height]
+    if avg_height < male_stats['lowest_avg_height'][1]:
+        male_stats['lowest_avg_height'] = [sport, avg_height]
+    if avg_weight > male_stats['largest_avg_weight'][1]:
+        male_stats['largest_avg_weight'] = [sport, avg_weight]
+    if avg_weight < male_stats['lowest_avg_weight'][1]:
+        male_stats['lowest_avg_weight'] = [sport, avg_weight]
+    if avg_age > male_stats['largest_avg_age'][1]:
+        male_stats['largest_avg_age'] = [sport, avg_age]
+    if avg_age < male_stats['lowest_avg_age'][1]:
+        male_stats['lowest_avg_age'] = [sport, avg_age]
+    if std_height > male_stats['largest_std_height'][1]:
+        male_stats['largest_std_height'] = [sport, std_height]
+    if std_height < male_stats['lowest_std_height'][1]:
+        male_stats['lowest_std_height'] = [sport, std_height]
+    if std_height > male_stats['largest_std_weight'][1]:
+        male_stats['largest_std_weight'] = [sport, std_weight]
+    if std_weight < male_stats['lowest_std_weight'][1]:
+        male_stats['lowest_std_weight'] = [sport, std_weight]
+    if std_age > male_stats['largest_std_age'][1]:
+        male_stats['largest_std_age'] = [sport, std_age]
+    if std_age < male_stats['lowest_std_age'][1]:
+        male_stats['lowest_std_age'] = [sport, std_age]
+        
+female_sports = dict(tuple(female_data.groupby('Sport')))
+for sport in female_sports:
+    avg_height = round(np.mean(female_sports[sport]['Height']))
+    avg_weight = round(np.mean(female_sports[sport]['Weight']))
+    avg_age = round(np.mean(female_sports[sport]['Age']))
+    std_height = round(np.std(female_sports[sport]['Height']))
+    std_weight = round(np.std(female_sports[sport]['Weight']))
+    std_age = round(np.std(female_sports[sport]['Age']))
+    if avg_height > female_stats['largest_avg_height'][1]:
+        female_stats['largest_avg_height'] = [sport, avg_height]
+    if avg_height < female_stats['lowest_avg_height'][1]:
+        female_stats['lowest_avg_height'] = [sport, avg_height]
+    if avg_weight > female_stats['largest_avg_weight'][1]:
+        female_stats['largest_avg_weight'] = [sport, avg_weight]
+    if avg_weight < female_stats['lowest_avg_weight'][1]:
+        female_stats['lowest_avg_weight'] = [sport, avg_weight]
+    if avg_age > female_stats['largest_avg_age'][1]:
+        female_stats['largest_avg_age'] = [sport, avg_age]
+    if avg_age < female_stats['lowest_avg_age'][1]:
+        female_stats['lowest_avg_age'] = [sport, avg_age]
+    if std_height > female_stats['largest_std_height'][1]:
+        female_stats['largest_std_height'] = [sport, std_height]
+    if std_height < female_stats['lowest_std_height'][1]:
+        female_stats['lowest_std_height'] = [sport, std_height]
+    if std_height > female_stats['largest_std_weight'][1]:
+        female_stats['largest_std_weight'] = [sport, std_weight]
+    if std_weight < female_stats['lowest_std_weight'][1]:
+        female_stats['lowest_std_weight'] = [sport, std_weight]
+    if std_age > female_stats['largest_std_age'][1]:
+        female_stats['largest_std_age'] = [sport, std_age]
+    if std_age < female_stats['lowest_std_age'][1]:
+        female_stats['lowest_std_age'] = [sport, std_age]
+print("Male stats:",male_stats)
+print("Female stats:",female_stats)
 #Plotting contingent size vs medal tally for top countries
 for country in top_countries:
     contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'red', label = 'Contingent Size')
