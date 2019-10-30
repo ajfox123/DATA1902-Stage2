@@ -67,6 +67,9 @@ male_data = df[df['Sex'] == "M"]
 female_data = df[df['Sex'] == "F"]
 
 
+
+
+
 #Some statistics for height/weight/age in each sport by sex
 male_stats = {'largest_avg_height':['',np.NINF],
          'lowest_avg_height':['',np.inf],
@@ -97,12 +100,12 @@ female_stats = {'largest_avg_height':['',np.NINF],
 
 male_sports = dict(tuple(male_data.groupby('Sport')))
 for sport in male_sports:
-    avg_height = np.mean(male_sports[sport]['Height'])
-    avg_weight = np.mean(male_sports[sport]['Weight'])
-    avg_age = np.mean(male_sports[sport]['Age'])
-    std_height = np.std(male_sports[sport]['Height'])
-    std_weight = np.std(male_sports[sport]['Weight'])
-    std_age = np.std(male_sports[sport]['Age'])
+    avg_height = round(np.mean(male_sports[sport]['Height']))
+    avg_weight = round(np.mean(male_sports[sport]['Weight']))
+    avg_age = round(np.mean(male_sports[sport]['Age']))
+    std_height = round(np.std(male_sports[sport]['Height']))
+    std_weight = round(np.std(male_sports[sport]['Weight']))
+    std_age = round(np.std(male_sports[sport]['Age']))
     if avg_height > male_stats['largest_avg_height'][1]:
         male_stats['largest_avg_height'] = [sport, avg_height]
     if avg_height < male_stats['lowest_avg_height'][1]:
@@ -130,12 +133,12 @@ for sport in male_sports:
         
 female_sports = dict(tuple(female_data.groupby('Sport')))
 for sport in female_sports:
-    avg_height = np.mean(female_sports[sport]['Height'])
-    avg_weight = np.mean(female_sports[sport]['Weight'])
-    avg_age = np.mean(female_sports[sport]['Age'])
-    std_height = np.std(female_sports[sport]['Height'])
-    std_weight = np.std(female_sports[sport]['Weight'])
-    std_age = np.std(female_sports[sport]['Age'])
+    avg_height = round(np.mean(female_sports[sport]['Height']))
+    avg_weight = round(np.mean(female_sports[sport]['Weight']))
+    avg_age = round(np.mean(female_sports[sport]['Age']))
+    std_height = round(np.std(female_sports[sport]['Height']))
+    std_weight = round(np.std(female_sports[sport]['Weight']))
+    std_age = round(np.std(female_sports[sport]['Age']))
     if avg_height > female_stats['largest_avg_height'][1]:
         female_stats['largest_avg_height'] = [sport, avg_height]
     if avg_height < female_stats['lowest_avg_height'][1]:
@@ -160,8 +163,8 @@ for sport in female_sports:
         female_stats['largest_std_age'] = [sport, std_age]
     if std_age < female_stats['lowest_std_age'][1]:
         female_stats['lowest_std_age'] = [sport, std_age]
-print(male_stats)
-print(female_stats)
+print("Male stats:",male_stats)
+print("Female stats:",female_stats)
 
 
 
@@ -169,7 +172,7 @@ print(female_stats)
 
 #Plotting height/weight for each sport vs all other athletes
 all_sports = dict(tuple(df.groupby('Sport')))
-specific_sports = ['Athletics','Weightlifting','Rhythmic Gymnastics']
+specific_sports = ['Athletics', 'Basketball', 'Weightlifting','Rhythmic Gymnastics']
 sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
@@ -195,7 +198,7 @@ for sport in specific_sports:
 
 
 #Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
-'''for target_sport in specific_sports:
+for target_sport in specific_sports:
     df['target'] = np.where(df['Sport'] == target_sport, 1, 0)
     X = df.values[:, 5:7]
     y = df.values[:, -1]
@@ -220,7 +223,6 @@ for sport in specific_sports:
         prediction_on_test = model.predict(X.iloc[holdout])
         accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
     print("Accuracy for "+target_sport+" using K-Nearest-Neighbors classification:", np.mean(accuracies))
-'''
 
 
 
