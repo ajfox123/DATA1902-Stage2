@@ -10,7 +10,7 @@ Created on Fri Oct 25 10:28:06 2019
 import numpy as np
 import pandas as pd
 from math import sqrt
-from sklearn import metrics, linear_model, model_selection, neighbors
+from sklearn import metrics, linear_model, model_selection, neighbors, tree
 from sklearn.model_selection import train_test_split, GridSearchCV
 from patsy import dmatrices
 import matplotlib.pyplot as plt
@@ -63,6 +63,165 @@ year_team_medals = pd.pivot_table(medal_tally,
                                   values = 'Medal_Won_Corrected',
                                   aggfunc = 'sum')[top_countries]
 
+male_data = df[df['Sex'] == "M"]
+female_data = df[df['Sex'] == "F"]
+
+
+#Some statistics for height/weight/age in each sport by sex
+male_stats = {'largest_avg_height':['',np.NINF],
+         'lowest_avg_height':['',np.inf],
+         'largest_avg_weight':['',np.NINF],
+         'lowest_avg_weight':['',np.inf],
+         'largest_avg_age':['',np.NINF],
+         'lowest_avg_age':['',np.inf],
+         'largest_std_height':['',np.NINF],
+         'lowest_std_height':['',np.inf],
+         'largest_std_weight':['',np.NINF],
+         'lowest_std_weight':['',np.inf],
+         'largest_std_age':['',np.NINF],
+         'lowest_std_age':['',np.inf]
+         }
+female_stats = {'largest_avg_height':['',np.NINF],
+         'lowest_avg_height':['',np.inf],
+         'largest_avg_weight':['',np.NINF],
+         'lowest_avg_weight':['',np.inf],
+         'largest_avg_age':['',np.NINF],
+         'lowest_avg_age':['',np.inf],
+         'largest_std_height':['',np.NINF],
+         'lowest_std_height':['',np.inf],
+         'largest_std_weight':['',np.NINF],
+         'lowest_std_weight':['',np.inf],
+         'largest_std_age':['',np.NINF],
+         'lowest_std_age':['',np.inf]
+         }
+
+male_sports = dict(tuple(male_data.groupby('Sport')))
+for sport in male_sports:
+    avg_height = np.mean(male_sports[sport]['Height'])
+    avg_weight = np.mean(male_sports[sport]['Weight'])
+    avg_age = np.mean(male_sports[sport]['Age'])
+    std_height = np.std(male_sports[sport]['Height'])
+    std_weight = np.std(male_sports[sport]['Weight'])
+    std_age = np.std(male_sports[sport]['Age'])
+    if avg_height > male_stats['largest_avg_height'][1]:
+        male_stats['largest_avg_height'] = [sport, avg_height]
+    if avg_height < male_stats['lowest_avg_height'][1]:
+        male_stats['lowest_avg_height'] = [sport, avg_height]
+    if avg_weight > male_stats['largest_avg_weight'][1]:
+        male_stats['largest_avg_weight'] = [sport, avg_weight]
+    if avg_weight < male_stats['lowest_avg_weight'][1]:
+        male_stats['lowest_avg_weight'] = [sport, avg_weight]
+    if avg_age > male_stats['largest_avg_age'][1]:
+        male_stats['largest_avg_age'] = [sport, avg_age]
+    if avg_age < male_stats['lowest_avg_age'][1]:
+        male_stats['lowest_avg_age'] = [sport, avg_age]
+    if std_height > male_stats['largest_std_height'][1]:
+        male_stats['largest_std_height'] = [sport, std_height]
+    if std_height < male_stats['lowest_std_height'][1]:
+        male_stats['lowest_std_height'] = [sport, std_height]
+    if std_height > male_stats['largest_std_weight'][1]:
+        male_stats['largest_std_weight'] = [sport, std_weight]
+    if std_weight < male_stats['lowest_std_weight'][1]:
+        male_stats['lowest_std_weight'] = [sport, std_weight]
+    if std_age > male_stats['largest_std_age'][1]:
+        male_stats['largest_std_age'] = [sport, std_age]
+    if std_age < male_stats['lowest_std_age'][1]:
+        male_stats['lowest_std_age'] = [sport, std_age]
+        
+female_sports = dict(tuple(female_data.groupby('Sport')))
+for sport in female_sports:
+    avg_height = np.mean(female_sports[sport]['Height'])
+    avg_weight = np.mean(female_sports[sport]['Weight'])
+    avg_age = np.mean(female_sports[sport]['Age'])
+    std_height = np.std(female_sports[sport]['Height'])
+    std_weight = np.std(female_sports[sport]['Weight'])
+    std_age = np.std(female_sports[sport]['Age'])
+    if avg_height > female_stats['largest_avg_height'][1]:
+        female_stats['largest_avg_height'] = [sport, avg_height]
+    if avg_height < female_stats['lowest_avg_height'][1]:
+        female_stats['lowest_avg_height'] = [sport, avg_height]
+    if avg_weight > female_stats['largest_avg_weight'][1]:
+        female_stats['largest_avg_weight'] = [sport, avg_weight]
+    if avg_weight < female_stats['lowest_avg_weight'][1]:
+        female_stats['lowest_avg_weight'] = [sport, avg_weight]
+    if avg_age > female_stats['largest_avg_age'][1]:
+        female_stats['largest_avg_age'] = [sport, avg_age]
+    if avg_age < female_stats['lowest_avg_age'][1]:
+        female_stats['lowest_avg_age'] = [sport, avg_age]
+    if std_height > female_stats['largest_std_height'][1]:
+        female_stats['largest_std_height'] = [sport, std_height]
+    if std_height < female_stats['lowest_std_height'][1]:
+        female_stats['lowest_std_height'] = [sport, std_height]
+    if std_height > female_stats['largest_std_weight'][1]:
+        female_stats['largest_std_weight'] = [sport, std_weight]
+    if std_weight < female_stats['lowest_std_weight'][1]:
+        female_stats['lowest_std_weight'] = [sport, std_weight]
+    if std_age > female_stats['largest_std_age'][1]:
+        female_stats['largest_std_age'] = [sport, std_age]
+    if std_age < female_stats['lowest_std_age'][1]:
+        female_stats['lowest_std_age'] = [sport, std_age]
+print(male_stats)
+print(female_stats)
+
+
+
+
+
+#Plotting height/weight for each sport vs all other athletes
+all_sports = dict(tuple(df.groupby('Sport')))
+specific_sports = ['Athletics','Weightlifting','Rhythmic Gymnastics']
+sport_accuracy_preds = []
+for sport in specific_sports:
+    this_sport = df[df['Sport']==sport]
+    not_this_sport = df[df['Sport'] != sport]
+
+    this_sport_heights = this_sport.values[:, 5]
+    this_sport_weights = this_sport.values[:, 6]
+    not_this_sport_heights =not_this_sport.values[:, 5]
+    not_this_sport_weights = not_this_sport.values[:, 6]
+    
+    plt.figure(figsize=(10,10))
+    title = sport+' and Non-'+sport+' Height and Weight'
+    plt.title(title)
+    plt.scatter(not_this_sport_weights, not_this_sport_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
+    plt.scatter(this_sport_weights, this_sport_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
+    plt.legend(loc = 'lower right')
+    plt.xlabel('Weight (kg)')
+    plt.ylabel('Height (cm)')
+    plt.show()
+
+    
+
+
+
+#Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
+'''for target_sport in specific_sports:
+    df['target'] = np.where(df['Sport'] == target_sport, 1, 0)
+    X = df.values[:, 5:7]
+    y = df.values[:, -1]
+    y=y.astype('int')
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    clf = linear_model.LogisticRegression(solver='liblinear').fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    print("Accuracy for "+target_sport+" using Logistic Regression:", metrics.accuracy_score(y_test, y_pred))
+
+
+    Y, X = dmatrices('target ~ 0 + Weight + Height',
+                    data = df,
+                    return_type = 'dataframe')
+    y = Y['target'].values
+    accuracies = []
+    kfold = model_selection.StratifiedKFold(n_splits = 5, shuffle = True).split(X, y)
+    model = neighbors.KNeighborsClassifier(n_neighbors = 20,
+                                          p = 2,
+                                          weights = 'uniform')
+    for train, holdout in kfold:
+        model.fit(X.iloc[train], y[train])
+        prediction_on_test = model.predict(X.iloc[holdout])
+        accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
+    print("Accuracy for "+target_sport+" using K-Nearest-Neighbors classification:", np.mean(accuracies))
+'''
+
 
 
 
@@ -104,38 +263,19 @@ print(contingent_medals[['Contingent', 'Medal_Count']].corr())
 
 
 
-stats = {'largest_avg_height':['',0],
-         'lowest_avg_height':['',0],
-         'largest_avg_weight':['',0],
-         'lowest_avg_weight':['',0],
-         'greatest_std_height':['',0],
-         'lowest_std_height':['',0],
-         'largest_std_weight':['',0],
-         'lowest_std_weight':['',0]}
-
-sports = dict(tuple(df.groupby('Sport')))
-for sport in sports:
-    avg_height = np.mean(sports[sport]['Height'])
-    avg_weight = np.mean(sports[sport]['Weight'])
-    std_height = np.std(sports[sport]['Height'])
-    std_weight = np.std(sports[sport]['Weight'])
-    if avg_height > stats['largest_avg_height']:
-        stats['largest_avg_height'] = [sport, avg_height]
-    if avg_height < stats['lowest_avg_height']:
-        stats['lowest_avg_height'] = [sport, avg_height]
-    if avg_weight > stats['largest_avg_weight']:
-        stats['largest_avg_weight'] = [sport, avg_weight]
-    if avg_weight < stats['lowest_avg_weight']:
-        stats['lowest_avg_weight'] = [sport, avg_weight]
-    if std_height > stats['largest_std_height']:
-        stats['largest_std_height'] = [sport, std_height]
-    if std_height < stats['lowest_std_height']:
-        stats['lowest_avg_height'] = [sport, avg_weight]
-    if std_height > stats['largest_std_height']:
-        stats['largest_avg_height'] = [sport, avg_height]
-    if std_weight < stats['lowest_std_height']:
-        stats['lowest_avg_height'] = [sport, avg_weight]
-
+#Graphing composition of medals between top 4 countries
+top_countries_medal_mask = medal_tally_agnostic['Team'].map(lambda x: x in top_countries)
+medal_composition = pd.pivot_table(medal_tally_agnostic[top_countries_medal_mask],
+                                     index = ['Team'],
+                                     columns = 'Medal',
+                                     values = 'Medal_Won_Corrected',
+                                     aggfunc = 'sum',
+                                     fill_value = 0).drop('No Medal', axis = 1)
+medal_composition = medal_composition.loc[:, ['Gold', 'Silver', 'Bronze']]
+medal_composition.plot(kind = 'bar', stacked = True, figsize = (10, 10), rot = 0)
+plt.title("Composition of Top Four Countries Medals")
+plt.ylabel("Medal Count")
+plt.show()
 
 
 
