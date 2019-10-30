@@ -46,7 +46,8 @@ medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Wo
 medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
 medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
 
-top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected'].agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)['Team']
+top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected'].agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
+print(top_countries)
 top_countries = ['USA', 'Russia', 'Germany', 'China']
 
 top_countries_mask = df['Team'].map(lambda x: x in top_countries)
@@ -176,18 +177,18 @@ specific_sports = ['Athletics', 'Basketball', 'Weightlifting','Rhythmic Gymnasti
 sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
-    not_this_sport = df[df['Sport'] != sport]
-
-    this_sport_heights = this_sport.values[:, 5]
-    this_sport_weights = this_sport.values[:, 6]
-    not_this_sport_heights =not_this_sport.values[:, 5]
-    not_this_sport_weights = not_this_sport.values[:, 6]
+    winners = this_sport[this_sport['Medal_Won'] == 1]
+    non_winners = this_sport[this_sport['Medal_Won'] != 1]
+    winners_heights = winners.values[:, 5]
+    winners_weights = winners.values[:, 6]
+    non_winners_heights = non_winners.values[:, 5]
+    non_winners_weights = non_winners.values[:, 6]
     
     plt.figure(figsize=(10,10))
     title = sport+' and Non-'+sport+' Height and Weight'
     plt.title(title)
-    plt.scatter(not_this_sport_weights, not_this_sport_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
-    plt.scatter(this_sport_weights, this_sport_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
+    plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
+    plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
     plt.legend(loc = 'lower right')
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')
@@ -199,7 +200,7 @@ for sport in specific_sports:
 
 #Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
 for target_sport in specific_sports:
-    df['target'] = np.where(df['Sport'] == target_sport, 1, 0)
+    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
     X = df.values[:, 5:7]
     y = df.values[:, -1]
     y=y.astype('int')
@@ -208,9 +209,10 @@ for target_sport in specific_sports:
     y_pred = clf.predict(X_test)
     print("Accuracy for "+target_sport+" using Logistic Regression:", metrics.accuracy_score(y_test, y_pred))
 
-
+for target_sport in specific_sports:
+    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
     Y, X = dmatrices('target ~ 0 + Weight + Height',
-                    data = df,
+                    data = male_data,
                     return_type = 'dataframe')
     y = Y['target'].values
     accuracies = []
@@ -257,8 +259,8 @@ year_team_medals_unstack.columns = ['Team','Year', 'Medal_Count']
 contingent_size_unstack = contingent_size.unstack().reset_index()
 contingent_size_unstack.columns = ['Team','Year', 'Contingent']
 contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
-                                                 left_on = ['Team', 'Year'],
-                                                 right_on = ['Team', 'Year'])
+                                                  left_on = ['Team', 'Year'],
+                                                  right_on = ['Team', 'Year'])
 print(contingent_medals[['Contingent', 'Medal_Count']].corr())
 
 
@@ -283,7 +285,23 @@ plt.show()
 
 
 
-
+#Linear Regression model for athlete winning a medal in a sport
+for target_sport in specific_sports:
+    mens_data = df.loc[(df['Sex'] == "M") & (df['Sport'] == target_sport)].drop_duplicates()
+    features = ['Team', 'Height', 'Age', 'Weight', 'Population']
+    y = mens_data['Weighted_Medal']
+    X = mens_data[features]
+    X = pd.get_dummies(data=X, drop_first=True)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    regr = linear_model.LinearRegression().fit(X_train, y_train)
+    # Use the model to predict y from X_test
+    y_pred = regr.predict(X_test)
+    # Root mean squared error
+    rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
+    r2 = metrics.r2_score(y_test, y_pred)
+    print("Linear Regression")
+    print('Root mean squared error (RMSE):', rmse)
+    print('R-squared score:', r2)
 
 
 
