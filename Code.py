@@ -21,22 +21,23 @@ from bokeh.palettes import Spectral4
 df = pd.read_csv('Output.csv')
 df = df.dropna()
 
-identify_team_events = pd.pivot_table(df,
-                                      index = ['Team', 'Year', 'Event'],
-                                      columns = 'Medal',
-                                      values = 'Medal_Won',
-                                      aggfunc = 'sum',
-                                      fill_value = 0).drop('No Medal', axis = 1).reset_index()
-identify_team_events = identify_team_events.loc[identify_team_events['Gold'] > 1, :]
-team_sports = identify_team_events['Event'].unique()
-remove_sports = ["Gymnastics Women's Balance Beam", "Gymnastics Men's Horizontal Bar", 
+team_events = pd.pivot_table(df,
+                             index = ['Team', 'Year', 'Event'],
+                             columns = 'Medal',
+                             values = 'Medal_Won',
+                             aggfunc = 'sum',
+                             fill_value = 0).drop('No Medal', axis = 1).reset_index()
+
+team_events = team_events.loc[team_events['Gold'] > 1, :]
+team_event = team_events['Event'].unique()
+remove_events = ["Gymnastics Women's Balance Beam", "Gymnastics Men's Horizontal Bar", 
                  "Swimming Women's 100 metres Freestyle", "Swimming Men's 50 metres Freestyle"]
-team_sports = list(set(team_sports) - set(remove_sports))
-team_event_mask = df['Event'].map(lambda x: x in team_sports)
+team_events = list(set(team_events) - set(remove_events))
+team_event_mask = df['Event'].map(lambda x: x in team_events)
 single_event_mask = [not i for i in team_event_mask]
-medal_mask = df['Medal_Won'] == 1
-df['Team_Event'] = np.where(team_event_mask & medal_mask, 1, 0)
-df['Single_Event'] = np.where(single_event_mask & medal_mask, 1, 0)
+medal_won_mask = df['Medal_Won'] == 1
+df['Team_Event'] = np.where(team_event_mask & medal_won_mask, 1, 0)
+df['Single_Event'] = np.where(single_event_mask & medal_won_mask, 1, 0)
 df['Event_Category'] = df['Single_Event'] + df['Team_Event']
 
 medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Won', 'Event_Category']].agg('sum').reset_index()
@@ -79,43 +80,19 @@ contingent_size_unstack.columns = ['Team','Year', 'Contingent']
 contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
                                                  left_on = ['Team', 'Year'],
                                                  right_on = ['Team', 'Year'])
-print(contingent_medals)
+
 print(contingent_medals[['Contingent', 'Medal_Count']].corr())
 
 
-'''
-year_team_gdp = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
-
-medal_tally_gdp = medal_tally.merge(year_team_gdp,
-                                   left_on = ['Year', 'Team'],
-                                   right_on = ['Year', 'Team'],
-                                   how = 'left')
-
-row_mask_5 = medal_tally_gdp['Medal_Won_Corrected'] > 0
 
 
-correlation = medal_tally_gdp.loc[row_mask_5, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
 
-plt.scatter(medal_tally_gdp.loc[row_mask_5, 'Population'], 
-     medal_tally_gdp.loc[row_mask_5, 'Medal_Won_Corrected'] , 
-     marker = 'o',
-    alpha = 0.4)
-plt.xlabel('Country Pop')
-plt.ylabel('Number of Medals')
-plt.title('Population versus medal tally')
-plt.text(np.nanpercentile(medal_tally_gdp['Population'], 99.6), 
-     max(medal_tally_gdp['Medal_Won_Corrected']) - 50,
-     "Correlation = " + str(correlation))
-'''
-
-
-'''
 mens_data = df.loc[df['Sex'] == "M", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 womens_data = df.loc[df['Sex'] == "F", ['Sport', 'Age','Weight', 'Height']].drop_duplicates()
 
-dfs = dict(tuple(df.groupby('Sport')))
+sports = dict(tuple(df.groupby('Sport')))
 sport_accuracy_preds = []
-for sport in dfs:
+for sport in sports:
     this_sport = df[df['Sport']==sport]
     not_this_sport = df[df['Sport'] != sport]
 
@@ -150,16 +127,15 @@ for sport in dfs:
 
     print(np.mean(accuracies))
     sport_accuracy_preds.append((sport, np.mean(accuracies)))
-'''
 
 
 
 
 
 '''
-athletics = df.loc[df['Sex'] == 'M', ['Sport', 'Age', 'Weight', 'Height']].drop_duplicates()
+
 features = ['Age', 'Height', 'Weight']
-athletics['target'] = np.where(athletics['Sport'] == 'Weightlifting', 1, 0)
+athletics['target'] = np.where(athletics['Sport'] == 'Basketball', 1, 0)
 y = athletics['target']
 X = athletics[features]
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
@@ -175,13 +151,38 @@ clf = linear_model.LogisticRegression(solver='liblinear').fit(X_train, y_train)
 y_pred = clf.predict(X_test)
 y_pred_proba = clf.predict_proba(X_test)
 
-for i in range(0,260):
+for i in range(0,1000):
     last_sample = X_test.iloc[i]
     for column, value in zip(features, last_sample):
         print(column + ': ' + str(value))
-        last_sample_proba = y_pred_proba[i]
-        print('Probability of 0:', last_sample_proba[0])
-        print('Probability of 1:', last_sample_proba[1])
-        print('Actual class:', int(y_test.iloc[i]))
-general trends in weight/height
-run loops for test size, n_folds etc'''
+    last_sample_proba = y_pred_proba[i]
+    print('Probability of 0:', last_sample_proba[0])
+    print('Probability of 1:', last_sample_proba[1])
+    print('Actual class:', int(y_test.iloc[i]))
+'''
+athletes = df.loc[df['Sex'] == 'M', ['Sport', 'Age', 'Weight', 'Height']].drop_duplicates()
+athletes['target'] = np.where(athletes['Sport'] == 'Basketball', 1, 0)
+
+
+Y, X = dmatrices('target ~ 0 + Weight + Height',
+                data = athletes,
+                return_type = 'dataframe')
+
+y = Y['target'].values
+
+accuracies = []
+
+kfold = model_selection.StratifiedKFold(n_splits = 5, shuffle = True).split(X, y)
+
+model = neighbors.KNeighborsClassifier(n_neighbors = 20,
+                                      p = 2,
+                                      weights = 'uniform')
+
+for train, holdout in kfold:
+    model.fit(X.iloc[train], y[train])
+    prediction_on_test = model.predict(X.iloc[holdout])
+    accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
+
+print(np.mean(accuracies))
+#general trends in weight/height
+#run loops for test size, n_folds etc
