@@ -16,6 +16,8 @@ from patsy import dmatrices
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, show, output_file
 from bokeh.palettes import Spectral4
+import math
+import statsmodels.api as sm
 
 df = pd.read_csv('Output.csv')
 df = df.dropna()
@@ -72,9 +74,9 @@ female_data = df[df['Sex'] == "F"]
 
 
 
-#Plotting height/weight for each sport vs all other athletes
+#Plotting height/weight of medal winners
 all_sports = dict(tuple(df.groupby('Sport')))
-specific_sports = ['Athletics', 'Basketball', 'Weightlifting','Rhythmic Gymnastics', 'Gymnastics']
+specific_sports = ['Athletics', 'Basketball', 'Weightlifting', 'Rhythmic Gymnastics', 'Gymnastics']
 sport_accuracy_preds = []
 for sport in specific_sports:
     this_sport = df[df['Sport']==sport]
@@ -86,7 +88,7 @@ for sport in specific_sports:
     non_winners_weights = non_winners.values[:, 6]
     
     plt.figure(figsize=(10,10))
-    title = 'Medal-Winners and Non-Medal-Winners Height and Weight for',sport
+    title = 'Medal-Winners and Non-Medal-Winners Height and Weight for '+sport
     plt.title(title)
     plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-'+sport, alpha=0.3)
     plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = sport, alpha=0.3)
@@ -95,37 +97,34 @@ for sport in specific_sports:
     plt.ylabel('Height (cm)')
     plt.show()
 
-    
 
 
 
-#Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
-for target_sport in specific_sports:
-    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
-    X = df.values[:, 5:7]
-    y = df.values[:, -1]
-    y=y.astype('int')
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
-    clf = linear_model.LogisticRegression(solver='liblinear').fit(X_train, y_train)
-    y_pred = clf.predict(X_test)
-    print("Accuracy for "+target_sport+" using Logistic Regression:", metrics.accuracy_score(y_test, y_pred))
 
-for target_sport in specific_sports:
-    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
-    Y, X = dmatrices('target ~ 0 + Weight + Height',
-                    data = male_data,
-                    return_type = 'dataframe')
-    y = Y['target'].values
-    accuracies = []
-    kfold = model_selection.StratifiedKFold(n_splits = 5, shuffle = True).split(X, y)
-    model = neighbors.KNeighborsClassifier(n_neighbors = 20,
-                                          p = 2,
-                                          weights = 'uniform')
-    for train, holdout in kfold:
-        model.fit(X.iloc[train], y[train])
-        prediction_on_test = model.predict(X.iloc[holdout])
-        accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
-    print("Accuracy for "+target_sport+" using K-Nearest-Neighbors classification:", np.mean(accuracies))
+
+#Plotting population vs medal tally
+year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
+medal_tally_pop = medal_tally.merge(year_team_pop,
+                                   left_on = ['Year', 'Team'],
+                                   right_on = ['Year', 'Team'],
+                                   how = 'left')
+
+row_mask_5 = medal_tally_pop['Medal_Won_Corrected'] > 0
+
+correlation = medal_tally_pop.loc[row_mask_5, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
+
+plt.scatter(medal_tally_pop.loc[row_mask_5, 'Population'], 
+            medal_tally_pop.loc[row_mask_5, 'Medal_Won_Corrected'] , 
+            marker = 'o',
+            alpha = 0.4)
+plt.xlabel('Country Population')
+plt.ylabel('Number of Medals')
+plt.title('Population versus medal tally')
+plt.text(np.nanpercentile(medal_tally_pop['Population'], 99.6), 
+     max(medal_tally_pop['Medal_Won_Corrected']) - 50,
+     "Correlation = " + str(correlation))
+plt.show()
+
 
 
 
@@ -188,7 +187,7 @@ plt.show()
 
 #Linear Regression model for athlete winning a medal in a sport
 for target_sport in specific_sports:
-    mens_data = df.loc[(df['Sex'] == "M") & (df['Sport'] == target_sport)].drop_duplicates()
+    mens_data = df.loc[df['Sport'] == target_sport].drop_duplicates()
     features = ['Team', 'Height', 'Age', 'Weight', 'Population']
     y = mens_data['Weighted_Medal']
     X = mens_data[features]
@@ -207,14 +206,44 @@ for target_sport in specific_sports:
 
 
 
+year_team_gender = df.loc[:,['Year','Team', 'Name', 'Sex']].drop_duplicates()
+year_team_gender_count = pd.pivot_table(year_team_gender,
+                                        index = ['Year', 'Team'],
+                                        columns = 'Sex',
+                                        aggfunc = 'count').reset_index()
+year_team_gender_count.columns = year_team_gender_count.columns.get_level_values(0)
+year_team_gender_count.columns = ['Year', 'Team', 'Female_Athletes', 'Male_Athletes']
+year_team_gender_count = year_team_gender_count.fillna(0)
+year_team_gender_count['Total_Athletes'] = year_team_gender_count['Female_Athletes'] + \
+year_team_gender_count['Male_Athletes']
+year_team_contingent = year_team_gender_count.loc[:, ['Year', 'Team','Total_Athletes']]
+year_team_contingent.head()
+year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
+print(year_team_pop.head())
+medal_pop = medal_tally.merge(year_team_pop,
+                              left_on = ['Year', 'Team'],
+                              right_on = ['Year', 'Team'],
+                              how = 'left')
+print(medal_pop.head())
+medal_pop_contingent = medal_pop.merge(year_team_contingent,
+                                                     left_on = ['Year', 'Team'],
+                                                     right_on = ['Year', 'Team'],
+                                                     how = 'left')
+print(medal_pop_contingent.head())
 
 
+medal_pop_contingent['Population'].hist(bins = 15)
+medal_pop_contingent['Log_Population'] = np.log(medal_pop_contingent['Population'])
 
 
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Total_Athletes + Team', 
+                 data = medal_pop_contingent,
+                 return_type = 'dataframe')
 
+model = sm.OLS(y, X)
+result = model.fit()
 
-
-
+print(result.summary())
 
 
 
@@ -242,6 +271,35 @@ for target_sport in specific_sports:
 
 
 '''
+#Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
+for target_sport in specific_sports:
+    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
+    X = df.values[:, 5:7]
+    y = df.values[:, -1]
+    y=y.astype('int')
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+    clf = linear_model.LogisticRegression(solver='liblinear').fit(X_train, y_train)
+    y_pred = clf.predict(X_test)
+    print("Accuracy for "+target_sport+" using Logistic Regression:", metrics.accuracy_score(y_test, y_pred))
+
+for target_sport in specific_sports:
+    male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
+    Y, X = dmatrices('target ~ 0 + Weight + Height',
+                    data = male_data,
+                    return_type = 'dataframe')
+    y = Y['target'].values
+    accuracies = []
+    kfold = model_selection.StratifiedKFold(n_splits = 5, shuffle = True).split(X, y)
+    model = neighbors.KNeighborsClassifier(n_neighbors = 20,
+                                          p = 2,
+                                          weights = 'uniform')
+    for train, holdout in kfold:
+        model.fit(X.iloc[train], y[train])
+        prediction_on_test = model.predict(X.iloc[holdout])
+        accuracies.append(metrics.accuracy_score(y[holdout], prediction_on_test))
+    print("Accuracy for "+target_sport+" using K-Nearest-Neighbors classification:", np.mean(accuracies))
+
+
 team_events = pd.pivot_table(df,
                              index = ['Team', 'Year', 'Event'],
                              columns = 'Medal',
