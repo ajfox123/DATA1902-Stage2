@@ -15,7 +15,7 @@ df = df.dropna()
 
 
 
-
+'''
 #Plotting height/weight of medal winners
 all_sports = df['Sport'].unique()
 print(len(all_sports))
@@ -41,7 +41,7 @@ for sport in all_sports:
     plt.show()
 
 
-
+'''
 
 
 team_events = pd.pivot_table(df,
@@ -118,8 +118,8 @@ year_team_medals = pd.pivot_table(medal_tally,
                                   aggfunc = 'sum')[top_countries]
 for country in top_countries:
     plt.figure(figsize=(10,10))
-    contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'red', label = 'Contingent Size')
-    year_team_medals[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'black', label = 'Medal Tally')
+    contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 1, color = 'red', label = 'Contingent Size')
+    year_team_medals[country].plot(linestyle = '-', marker = 'x', linewidth = 1, color = 'black', label = 'Medal Tally')
     plt.xlabel('Olympic Year')
     plt.ylabel('Contingent Size/Medal Tally')
     plt.title('Team '+country+'\nContingent Size vs Medal Tally')
@@ -151,7 +151,7 @@ contingent_size_unstack.columns = ['Team','Year', 'Contingent']
 contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
                                                   left_on = ['Team', 'Year'],
                                                   right_on = ['Team', 'Year'])
-print(contingent_medals[['Contingent', 'Medal_Count']].corr())
+print("Correlation between contingent size and corrected medal tally:",contingent_medals[['Contingent', 'Medal_Count']].corr()['Medal_Count'][0])
 
 
 
@@ -215,21 +215,9 @@ print(medal_pop.head())
 
 
 
-
-#Merging contingent size
-medal_pop_contingent = medal_pop.merge(contingent_size_unstack,
-                                       left_on = ['Year', 'Team'],
-                                       right_on = ['Year', 'Team'],
-                                       how = 'left')
-print(medal_pop_contingent.head())
-
-
-
-
-
 #Plotting country populations and medals won as a histogram
 plt.figure(figsize=(10,10))
-medal_pop_contingent['Population'].hist(bins = 15)
+medal_pop['Population'].hist(bins = 30)
 plt.title('Population Histogram for Countries')
 plt.xlabel('Population Size Bins')
 plt.ylabel('Number of Countries')
@@ -239,8 +227,20 @@ plt.show()
 
 
 
+
 #Applying a logarithmic scale to population size to better fit linear model
-medal_pop_contingent['Log_Population'] = np.log(medal_pop_contingent['Population'])
+medal_pop['Log_Population'] = np.log(medal_pop['Population'])
+
+
+
+
+
+#Merging contingent size
+medal_pop_contingent = medal_pop.merge(contingent_size_unstack,
+                                       left_on = ['Year', 'Team'],
+                                       right_on = ['Year', 'Team'],
+                                       how = 'left')
+print(medal_pop_contingent.head())
 
 
 
@@ -255,11 +255,13 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_
 
 
 
+
 model = sm.OLS(y_train, X_train)
 result = model.fit()
-print(result.summary())
 y_predicted = result.predict(X_test)
-print(np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
+print('OLS')
+print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
+print('R-squared score:',result.rsquared)
 
 
 
@@ -288,9 +290,10 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_
 
 model = sm.OLS(y_train, X_train)
 result = model.fit()
-print(result.summary())
 y_predicted = result.predict(X_test)
-print(np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
+print('OLS')
+print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
+print('R-squared score:',result.rsquared)
 
 
 
