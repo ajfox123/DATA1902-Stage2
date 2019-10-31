@@ -50,7 +50,6 @@ medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Correcte
 top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected'].agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
 print(top_countries)
 top_countries = ['USA', 'Russia', 'Germany', 'China']
-
 top_countries_mask = df['Team'].map(lambda x: x in top_countries)
 
 year_team_athelete = df.loc[top_countries_mask, ['Year', 'Team', 'Name']].drop_duplicates()
@@ -147,6 +146,11 @@ for country in top_countries:
 #Correlation between contingent size and medal tally for all countries
 all_countries = df['Team'].unique()
 all_countries_mask = df['Team'].map(lambda x: x in all_countries)
+year_team_medals = pd.pivot_table(medal_tally,
+                                  index = 'Year',
+                                  columns = 'Team',
+                                  values = 'Medal_Won_Corrected',
+                                  aggfunc = 'sum')[all_countries]
 year_team_athelete = df.loc[all_countries_mask, ['Year', 'Team', 'Name']].drop_duplicates()
 contingent_size = pd.pivot_table(year_team_athelete,
                                  index = 'Year',
@@ -169,11 +173,11 @@ print(contingent_medals[['Contingent', 'Medal_Count']].corr())
 #Graphing composition of medals between top 4 countries
 top_countries_medal_mask = medal_tally_agnostic['Team'].map(lambda x: x in top_countries)
 medal_composition = pd.pivot_table(medal_tally_agnostic[top_countries_medal_mask],
-                                     index = ['Team'],
-                                     columns = 'Medal',
-                                     values = 'Medal_Won_Corrected',
-                                     aggfunc = 'sum',
-                                     fill_value = 0).drop('No Medal', axis = 1)
+                                   index = ['Team'],
+                                   columns = 'Medal',
+                                   values = 'Medal_Won_Corrected',
+                                   aggfunc = 'sum',
+                                   fill_value = 0).drop('No Medal', axis = 1)
 medal_composition = medal_composition.loc[:, ['Gold', 'Silver', 'Bronze']]
 medal_composition.plot(kind = 'bar', stacked = True, figsize = (10, 10), rot = 0)
 plt.title("Composition of Top Four Countries Medals")
