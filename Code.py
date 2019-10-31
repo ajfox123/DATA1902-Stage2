@@ -1,12 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Oct 25 10:28:06 2019
-
-@author: archiefox
-"""
-
-#Importing modules: Numpy is used for several functions, Pandas for dataframes and matplotlib.pyplot for graphing
 import numpy as np
 import pandas as pd
 from math import sqrt
@@ -184,9 +175,23 @@ plt.show()
 
 
 
+
+
+
+
+
 #End of analysis
 
+
+
+
+
 #Start of predictive models
+
+
+
+
+
 
 
 
