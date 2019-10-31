@@ -201,19 +201,12 @@ plt.show()
 year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
 print(year_team_pop.head())
 
-
-
-
-
 #Merging corrected medal count for that year
 medal_pop = medal_tally.merge(year_team_pop,
                               left_on = ['Year', 'Team'],
                               right_on = ['Year', 'Team'],
                               how = 'left')
 print(medal_pop.head())
-
-
-
 
 #Plotting country populations and medals won as a histogram
 plt.figure(figsize=(10,10))
@@ -223,17 +216,8 @@ plt.xlabel('Population Size Bins')
 plt.ylabel('Number of Countries')
 plt.show()
 
-
-
-
-
-
 #Applying a logarithmic scale to population size to better fit linear model
 medal_pop['Log_Population'] = np.log(medal_pop['Population'])
-
-
-
-
 
 #Merging contingent size
 medal_pop_contingent = medal_pop.merge(contingent_size_unstack,
