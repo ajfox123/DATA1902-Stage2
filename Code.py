@@ -212,7 +212,7 @@ print(medal_pop.head())
 plt.figure(figsize=(10,10))
 medal_pop['Population'].hist(bins = 30)
 plt.title('Population Histogram for Countries')
-plt.xlabel('Population Size Bins')
+plt.xlabel('Population Size - Binned')
 plt.ylabel('Number of Countries')
 plt.show()
 
@@ -224,7 +224,7 @@ medal_pop_contingent = medal_pop.merge(contingent_size_unstack,
                                        left_on = ['Year', 'Team'],
                                        right_on = ['Year', 'Team'],
                                        how = 'left')
-print(medal_pop_contingent.head())
+print(medal_pop_contingent.head().to_string())
 
 
 
