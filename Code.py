@@ -10,13 +10,12 @@ Created on Fri Oct 25 10:28:06 2019
 import numpy as np
 import pandas as pd
 from math import sqrt
-from sklearn import metrics, linear_model, model_selection, neighbors, tree
-from sklearn.model_selection import train_test_split, GridSearchCV
+from sklearn import metrics, linear_model, neighbors
+from sklearn.model_selection import train_test_split
 from patsy import dmatrices
 import matplotlib.pyplot as plt
 from bokeh.plotting import figure, show, output_file
 from bokeh.palettes import Spectral4
-import math
 import statsmodels.api as sm
 
 df = pd.read_csv('Output.csv')
@@ -47,7 +46,8 @@ medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Wo
 medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
 medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
 
-top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected'].agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
+top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected']\
+.agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
 print(top_countries)
 top_countries = ['USA', 'Russia', 'Germany', 'China']
 top_countries_mask = df['Team'].map(lambda x: x in top_countries)
@@ -188,78 +188,119 @@ plt.show()
 
 
 
-year_team_gender = df.loc[:,['Year','Team', 'Name', 'Sex']].drop_duplicates()
-year_team_gender_count = pd.pivot_table(year_team_gender,
-                                        index = ['Year', 'Team'],
-                                        columns = 'Sex',
-                                        aggfunc = 'count').reset_index()
-year_team_gender_count.columns = year_team_gender_count.columns.get_level_values(0)
-year_team_gender_count.columns = ['Year', 'Team', 'Female_Athletes', 'Male_Athletes']
-year_team_gender_count = year_team_gender_count.fillna(0)
-year_team_gender_count['Total_Athletes'] = year_team_gender_count['Female_Athletes'] + \
-year_team_gender_count['Male_Athletes']
-year_team_contingent = year_team_gender_count.loc[:, ['Year', 'Team','Total_Athletes']]
-year_team_contingent.head()
+#End of analysis
+
+#Start of predictive models
+
+
+
+
+
+#Getting population 
 year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
 print(year_team_pop.head())
+
+
+
+
+
+#Merging corrected medal count for that year
 medal_pop = medal_tally.merge(year_team_pop,
                               left_on = ['Year', 'Team'],
                               right_on = ['Year', 'Team'],
                               how = 'left')
 print(medal_pop.head())
-medal_pop_contingent = medal_pop.merge(year_team_contingent,
-                                                     left_on = ['Year', 'Team'],
-                                                     right_on = ['Year', 'Team'],
-                                                     how = 'left')
+
+
+
+
+
+#Merging contingent size
+medal_pop_contingent = medal_pop.merge(contingent_size_unstack,
+                                       left_on = ['Year', 'Team'],
+                                       right_on = ['Year', 'Team'],
+                                       how = 'left')
 print(medal_pop_contingent.head())
 
+
+
+
+
+#Plotting country populations and medals won as a histogram
 plt.figure(figsize=(10,10))
-print(medal_pop_contingent.shape)
 medal_pop_contingent['Population'].hist(bins = 15)
 plt.title('Population Histogram for Countries')
 plt.xlabel('Population Size Bins')
 plt.ylabel('Number of Countries')
 plt.show()
 
+
+
+
+
+#Applying a logarithmic scale to population size to better fit linear model
 medal_pop_contingent['Log_Population'] = np.log(medal_pop_contingent['Population'])
 
 
-y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Total_Athletes', 
+
+
+
+#Models using the logarithm of population and contingent size
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent', 
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+
+
+
+
 model = sm.OLS(y_train, X_train)
 result = model.fit()
-
 print(result.summary())
+y_predicted = result.predict(X_test)
+print(np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 
-y_predicted = result.predict(X)
-print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
 
 
-y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Total_Athletes + Team', 
+
+
+print("KNN")
+neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
+y_pred = neigh.predict(X_test)
+mse = metrics.mean_squared_error(y_test, y_pred)
+print('Root mean squared error (RMSE):', sqrt(mse))
+print('R-squared score:', metrics.r2_score(y_test, y_pred))
+
+
+
+
+
+#Models using the logarithm of population, contingent size and team
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent + Team', 
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
-model = sm.OLS(y, X)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
+
+
+
+
+
+model = sm.OLS(y_train, X_train)
 result = model.fit()
-
 print(result.summary())
-
-y_predicted = result.predict(X)
-print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
-
+y_predicted = result.predict(X_test)
+print(np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 
 
 
 
 
-
-
-
-
-
-
-
+print("KNN")
+neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
+y_pred = neigh.predict(X_test)
+mse = metrics.mean_squared_error(y_test, y_pred)
+print('Root mean squared error (RMSE):', sqrt(mse))
+print('R-squared score:', metrics.r2_score(y_test, y_pred))
 
 
 
@@ -271,6 +312,16 @@ print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
 
 
 '''
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent + Team', 
+                 data = medal_pop_contingent,
+                 return_type = 'dataframe')
+model = sm.OLS(y, X)
+result = model.fit()
+
+print(result.summary())
+
+y_predicted = result.predict(X)
+print(np.sqrt(metrics.mean_squared_error(y, y_predicted)))
 #Here we try to predict, using logistic regression then KNN, whether an athlete does given sport or not based on their height and weight alone
 for target_sport in specific_sports:
     male_data['target'] = np.where(male_data['Sport'] == target_sport, 1, 0)
