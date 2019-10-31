@@ -10,7 +10,7 @@ Created on Fri Oct 25 10:28:06 2019
 import numpy as np
 import pandas as pd
 from math import sqrt
-from sklearn import metrics, linear_model, neighbors
+from sklearn import metrics, neighbors
 from sklearn.model_selection import train_test_split
 from patsy import dmatrices
 import matplotlib.pyplot as plt
@@ -21,72 +21,26 @@ import statsmodels.api as sm
 df = pd.read_csv('Output.csv')
 df = df.dropna()
 
-team_events = pd.pivot_table(df,
-                             index = ['Team', 'Year', 'Event'],
-                             columns = 'Medal',
-                             values = 'Medal_Won',
-                             aggfunc = 'sum',
-                             fill_value = 0).drop('No Medal', axis = 1).reset_index()
-
-team_events = team_events.loc[team_events['Gold'] > 1, :]
-team_event = team_events['Event'].unique()
-remove_events = ["Gymnastics Men's Horizontal Bar",
-                 "Gymnastics Women's Balance Beam",
-                 "Swimming Women's 100 metres Freestyle",
-                 "Swimming Men's 50 metres Freestyle"]
-team_events = list(set(team_events) - set(remove_events))
-team_event_mask = df['Event'].map(lambda x: x in team_events)
-single_event_mask = [not i for i in team_event_mask]
-medal_won_mask = df['Medal_Won'] == 1
-df['Team_Event'] = np.where(team_event_mask & medal_won_mask, 1, 0)
-df['Single_Event'] = np.where(single_event_mask & medal_won_mask, 1, 0)
-df['Event_Category'] = df['Single_Event'] + df['Team_Event']
-
-medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Won', 'Event_Category']].agg('sum').reset_index()
-medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
-medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
-
-top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected']\
-.agg('sum').reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
-print(top_countries)
-top_countries = ['USA', 'Russia', 'Germany', 'China']
-top_countries_mask = df['Team'].map(lambda x: x in top_countries)
-
-year_team_athelete = df.loc[top_countries_mask, ['Year', 'Team', 'Name']].drop_duplicates()
-contingent_size = pd.pivot_table(year_team_athelete,
-                                 index = 'Year',
-                                 columns = 'Team',
-                                 values = 'Name',
-                                 aggfunc = 'count')
-year_team_medals = pd.pivot_table(medal_tally,
-                                  index = 'Year',
-                                  columns = 'Team',
-                                  values = 'Medal_Won_Corrected',
-                                  aggfunc = 'sum')[top_countries]
-
-male_data = df[df['Sex'] == "M"]
-female_data = df[df['Sex'] == "F"]
-
 
 
 
 
 #Plotting height/weight of medal winners
-all_sports = dict(tuple(df.groupby('Sport')))
+all_sports = df['Sport'].unique()
 print(len(all_sports))
-
-specific_sports = ['Athletics', 'Basketball', 'Weightlifting', 'Gymnastics']
-for sport in specific_sports:
+for sport in all_sports:
     this_sport = df[df['Sport']==sport]
+    
     winners = this_sport[this_sport['Medal_Won'] == 1]
     non_winners = this_sport[this_sport['Medal_Won'] != 1]
+    
     winners_heights = winners.values[:, 5]
     winners_weights = winners.values[:, 6]
     non_winners_heights = non_winners.values[:, 5]
     non_winners_weights = non_winners.values[:, 6]
     
     plt.figure(figsize=(10,10))
-    title = 'Medal-Winners and Non-Medal-Winners Height and Weight for '+sport
+    title = 'Medal-Winners and Non-Medal-Winners Height and Weight for '+str(sport)
     plt.title(title)
     plt.scatter(non_winners_weights, non_winners_heights, color='#0000ff', marker = '.', label = 'Non-medal winner', alpha=0.5)
     plt.scatter(winners_weights, winners_heights, color='#ff0000', marker = 'x', label = 'Medal winner', alpha=0.5)
@@ -99,6 +53,40 @@ for sport in specific_sports:
 
 
 
+team_events = pd.pivot_table(df,
+                             index = ['Team', 'Year', 'Event'],
+                             columns = 'Medal',
+                             values = 'Medal_Won',
+                             aggfunc = 'sum',
+                             fill_value = 0).drop('No Medal', axis = 1).reset_index()
+team_events = team_events.loc[team_events['Gold'] > 1, :]
+team_events = team_events['Event'].unique()
+print(*team_events, sep='\n')
+remove_events = ["Gymnastics Men's Horizontal Bar",
+                 "Gymnastics Women's Balance Beam",
+                 "Swimming Women's 100 metres Freestyle",
+                 "Swimming Men's 50 metres Freestyle"]
+team_events = list(set(team_events) - set(remove_events))
+
+team_event_mask = df['Event'].map(lambda x: x in team_events)
+single_event_mask = [not i for i in team_event_mask]
+medal_won_mask = df['Medal_Won'] == 1
+df['Team_Event'] = np.where(team_event_mask & medal_won_mask, 1, 0)
+df['Single_Event'] = np.where(single_event_mask & medal_won_mask, 1, 0)
+df['Event_Category'] = df['Single_Event'] + df['Team_Event']
+medal_tally_agnostic = df.groupby(['Year', 'Team', 'Event', 'Medal'])[['Medal_Won', 'Event_Category']].agg('sum').reset_index()
+medal_tally_agnostic['Medal_Won_Corrected'] = medal_tally_agnostic['Medal_Won']/medal_tally_agnostic['Event_Category']
+medal_tally = medal_tally_agnostic.groupby(['Year', 'Team'])['Medal_Won_Corrected'].agg('sum').reset_index()
+
+top_countries = medal_tally.groupby('Team')['Medal_Won_Corrected'].agg('sum').\
+reset_index().sort_values('Medal_Won_Corrected', ascending = False).head(n=4)
+print(top_countries)
+top_countries = ['USA', 'Russia', 'Germany', 'China']
+top_countries_mask = df['Team'].map(lambda x: x in top_countries)
+
+
+
+
 
 #Plotting population vs medal tally
 year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
@@ -106,15 +94,12 @@ medal_tally_pop = medal_tally.merge(year_team_pop,
                                    left_on = ['Year', 'Team'],
                                    right_on = ['Year', 'Team'],
                                    how = 'left')
-
-medal_mask = medal_tally_pop['Medal_Won_Corrected'] > 0
-
-correlation = medal_tally_pop.loc[medal_mask, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
+correlation = medal_tally_pop.loc[:, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
 plt.figure(figsize=(10,10))
-plt.scatter(medal_tally_pop.loc[medal_mask, 'Population'], 
-            medal_tally_pop.loc[medal_mask, 'Medal_Won_Corrected'] , 
+plt.scatter(medal_tally_pop.loc[:, 'Population'], 
+            medal_tally_pop.loc[:, 'Medal_Won_Corrected'] , 
             marker = 'o',
-            alpha = 0.4)
+            alpha = 0.5)
 plt.xlabel('Country Population')
 plt.ylabel('Number of Medals')
 plt.title('Population versus medal tally')
@@ -129,6 +114,17 @@ plt.show()
 
 
 #Plotting contingent size vs medal tally for top countries
+year_team_athelete = df.loc[top_countries_mask, ['Year', 'Team', 'Name']].drop_duplicates()
+contingent_size = pd.pivot_table(year_team_athelete,
+                                 index = 'Year',
+                                 columns = 'Team',
+                                 values = 'Name',
+                                 aggfunc = 'count')
+year_team_medals = pd.pivot_table(medal_tally,
+                                  index = 'Year',
+                                  columns = 'Team',
+                                  values = 'Medal_Won_Corrected',
+                                  aggfunc = 'sum')[top_countries]
 for country in top_countries:
     plt.figure(figsize=(10,10))
     contingent_size[country].plot(linestyle = '-', marker = 'o', linewidth = 2, color = 'red', label = 'Contingent Size')
