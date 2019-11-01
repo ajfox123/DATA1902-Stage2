@@ -15,7 +15,7 @@ df = df.dropna()
 
 
 
-'''
+
 #Plotting height/weight of medal winners
 all_sports = df['Sport'].unique()
 print(len(all_sports))
@@ -41,7 +41,7 @@ for sport in all_sports:
     plt.show()
 
 
-'''
+
 
 
 team_events = pd.pivot_table(df,
@@ -130,7 +130,7 @@ for country in top_countries:
 
 
 
-#Correlation between contingent size and medal tally for all countries
+#Correlation between contingent size vs corrected medal tally
 all_countries = df['Team'].unique()
 all_countries_mask = df['Team'].map(lambda x: x in all_countries)
 year_team_medals = pd.pivot_table(medal_tally,
@@ -151,7 +151,42 @@ contingent_size_unstack.columns = ['Team','Year', 'Contingent']
 contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
                                                   left_on = ['Team', 'Year'],
                                                   right_on = ['Team', 'Year'])
-print("Correlation between contingent size and corrected medal tally:",contingent_medals[['Contingent', 'Medal_Count']].corr()['Medal_Count'][0])
+plt.figure(figsize=(10,10))
+plt.scatter(contingent_medals.loc[:, 'Contingent'], 
+            contingent_medals.loc[:, 'Medal_Count'] , 
+            marker = 'o',
+            alpha = 0.5)
+plt.xlabel('Contingent Size')
+plt.ylabel('Medal Tally')
+plt.title('Contingent Size versus Medal Tally')
+correlation = contingent_medals.loc[:, ['Contingent', 'Medal_Count']].corr()['Medal_Count'][0]
+plt.text(np.nanpercentile(contingent_medals['Contingent'], 90.6), 
+         max(contingent_medals['Medal_Count']) - 50,
+         "Correlation = " + str(correlation),)
+plt.show()
+
+
+
+
+
+#Plotting contingent size vs population
+contingent_pop = year_team_pop.merge(contingent_size_unstack,
+                                     left_on = ['Year', 'Team'],
+                                     right_on = ['Year', 'Team'],
+                                     how = 'left')
+correlation = contingent_pop.loc[:, ['Population', 'Contingent']].corr()['Contingent'][0]
+plt.figure(figsize=(10,10))
+plt.scatter(contingent_pop.loc[:, 'Population'], 
+            contingent_pop.loc[:, 'Contingent'] , 
+            marker = 'o',
+            alpha = 0.5)
+plt.xlabel('Country Population')
+plt.ylabel('Contingent Size')
+plt.title('Population versus Contingent Size')
+plt.text(np.nanpercentile(contingent_pop['Population'], 98.6), 
+         max(contingent_pop['Contingent']) - 50,
+         "Correlation = " + str(correlation),)
+plt.show()
 
 
 
@@ -231,14 +266,11 @@ print(medal_pop_contingent.head().to_string())
 
 
 #Models using the logarithm of population and contingent size
+print('Models using contingent size and log of population')
 y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent', 
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
-
-
-
-
 
 model = sm.OLS(y_train, X_train)
 result = model.fit()
@@ -247,14 +279,10 @@ print('OLS')
 print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 print('R-squared score:',result.rsquared)
 
-
-
-
-
-print("KNN")
 neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
 y_pred = neigh.predict(X_test)
 mse = metrics.mean_squared_error(y_test, y_pred)
+print("KNN")
 print('Root mean squared error (RMSE):', sqrt(mse))
 print('R-squared score:', metrics.r2_score(y_test, y_pred))
 
@@ -263,14 +291,11 @@ print('R-squared score:', metrics.r2_score(y_test, y_pred))
 
 
 #Models using the logarithm of population, contingent size and team
+print('\nModels using contingent size, log of population and team')
 y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent + Team', 
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
-
-
-
-
 
 model = sm.OLS(y_train, X_train)
 result = model.fit()
@@ -278,10 +303,6 @@ y_predicted = result.predict(X_test)
 print('OLS')
 print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 print('R-squared score:',result.rsquared)
-
-
-
-
 
 print("KNN")
 neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
