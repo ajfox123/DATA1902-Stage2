@@ -15,7 +15,7 @@ df = df.dropna()
 
 
 
-
+'''
 #Plotting height/weight of medal winners
 all_sports = df['Sport'].unique()
 print(len(all_sports))
@@ -39,7 +39,7 @@ for sport in all_sports:
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')
     plt.show()
-
+'''
 
 
 
@@ -279,12 +279,18 @@ print('OLS')
 print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 print('R-squared score:',result.rsquared)
 
-neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
-y_pred = neigh.predict(X_test)
-mse = metrics.mean_squared_error(y_test, y_pred)
+neighbs = [0, np.inf, 0]
+for i in range(1,50):
+    neigh = neighbors.KNeighborsRegressor(n_neighbors=i).fit(X_train, y_train)
+    y_pred = neigh.predict(X_test)
+    rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
+    r2 = metrics.r2_score(y_test, y_pred)
+    if rmse < neighbs[1]:
+        neighbs = [i, rmse, r2]
 print("KNN")
-print('Root mean squared error (RMSE):', sqrt(mse))
-print('R-squared score:', metrics.r2_score(y_test, y_pred))
+print('Neighbours used:', neighbs[0])
+print('Root mean squared error (RMSE):', neighbs[1])
+print('R-squared score:', neighbs[2])
 
 
 
@@ -304,9 +310,15 @@ print('OLS')
 print('Root mean squared error (RMSE):',np.sqrt(metrics.mean_squared_error(y_test, y_predicted)))
 print('R-squared score:',result.rsquared)
 
+neighbs = [0, np.inf, 0]
+for i in range(1,50):
+    neigh = neighbors.KNeighborsRegressor(n_neighbors=i).fit(X_train, y_train)
+    y_pred = neigh.predict(X_test)
+    rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
+    r2 = metrics.r2_score(y_test, y_pred)
+    if rmse > neighbs[1]:
+        neighbs = [i, rmse, r2]
 print("KNN")
-neigh = neighbors.KNeighborsRegressor(n_neighbors=4).fit(X_train, y_train)
-y_pred = neigh.predict(X_test)
-mse = metrics.mean_squared_error(y_test, y_pred)
-print('Root mean squared error (RMSE):', sqrt(mse))
-print('R-squared score:', metrics.r2_score(y_test, y_pred))
+print('Neighbours used:', neighbs[0])
+print('Root mean squared error (RMSE):', neighbs[1])
+print('R-squared score:', neighbs[2])
