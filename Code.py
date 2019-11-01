@@ -5,9 +5,12 @@ from sklearn import metrics, neighbors
 from sklearn.model_selection import train_test_split
 from patsy import dmatrices
 import matplotlib.pyplot as plt
-from bokeh.plotting import figure, show, output_file
-from bokeh.palettes import Spectral4
 import statsmodels.api as sm
+from bokeh.plotting import figure, show
+from bokeh.io import output_file
+from bokeh.models import ColumnDataSource, HoverTool
+from bokeh.layouts import gridplot
+from bokeh.models import PrintfTickFormatter
 
 df = pd.read_csv('Output.csv')
 df = df.dropna()
@@ -21,15 +24,15 @@ all_sports = df['Sport'].unique()
 print(len(all_sports))
 for sport in all_sports:
     this_sport = df[df['Sport']==sport]
-    
+
     winners = this_sport[this_sport['Medal_Won'] == 1]
     non_winners = this_sport[this_sport['Medal_Won'] != 1]
-    
+
     winners_heights = winners.values[:, 5]
     winners_weights = winners.values[:, 6]
     non_winners_heights = non_winners.values[:, 5]
     non_winners_weights = non_winners.values[:, 6]
-    
+
     plt.figure(figsize=(10,10))
     title = 'Medal-Winners and Non-Medal-Winners Height and Weight for '+str(sport)
     plt.title(title)
@@ -87,14 +90,14 @@ medal_tally_pop = medal_tally.merge(year_team_pop,
                                    how = 'left')
 correlation = medal_tally_pop.loc[:, ['Population', 'Medal_Won_Corrected']].corr()['Medal_Won_Corrected'][0]
 plt.figure(figsize=(10,10))
-plt.scatter(medal_tally_pop.loc[:, 'Population'], 
-            medal_tally_pop.loc[:, 'Medal_Won_Corrected'] , 
+plt.scatter(medal_tally_pop.loc[:, 'Population'],
+            medal_tally_pop.loc[:, 'Medal_Won_Corrected'] ,
             marker = 'o',
             alpha = 0.5)
 plt.xlabel('Country Population')
 plt.ylabel('Number of Medals')
 plt.title('Population versus medal tally')
-plt.text(np.nanpercentile(medal_tally_pop['Population'], 98.6), 
+plt.text(np.nanpercentile(medal_tally_pop['Population'], 98.6),
          max(medal_tally_pop['Medal_Won_Corrected']) - 50,
          "Correlation = " + str(correlation),)
 plt.show()
@@ -152,15 +155,15 @@ contingent_medals = contingent_size_unstack.merge(year_team_medals_unstack,
                                                   left_on = ['Team', 'Year'],
                                                   right_on = ['Team', 'Year'])
 plt.figure(figsize=(10,10))
-plt.scatter(contingent_medals.loc[:, 'Contingent'], 
-            contingent_medals.loc[:, 'Medal_Count'] , 
+plt.scatter(contingent_medals.loc[:, 'Contingent'],
+            contingent_medals.loc[:, 'Medal_Count'] ,
             marker = 'o',
             alpha = 0.5)
 plt.xlabel('Contingent Size')
 plt.ylabel('Medal Tally')
 plt.title('Contingent Size versus Medal Tally')
 correlation = contingent_medals.loc[:, ['Contingent', 'Medal_Count']].corr()['Medal_Count'][0]
-plt.text(np.nanpercentile(contingent_medals['Contingent'], 90.6), 
+plt.text(np.nanpercentile(contingent_medals['Contingent'], 90.6),
          max(contingent_medals['Medal_Count']) - 50,
          "Correlation = " + str(correlation),)
 plt.show()
@@ -176,14 +179,14 @@ contingent_pop = year_team_pop.merge(contingent_size_unstack,
                                      how = 'left')
 correlation = contingent_pop.loc[:, ['Population', 'Contingent']].corr()['Contingent'][0]
 plt.figure(figsize=(10,10))
-plt.scatter(contingent_pop.loc[:, 'Population'], 
-            contingent_pop.loc[:, 'Contingent'] , 
+plt.scatter(contingent_pop.loc[:, 'Population'],
+            contingent_pop.loc[:, 'Contingent'] ,
             marker = 'o',
             alpha = 0.5)
 plt.xlabel('Country Population')
 plt.ylabel('Contingent Size')
 plt.title('Population versus Contingent Size')
-plt.text(np.nanpercentile(contingent_pop['Population'], 98.6), 
+plt.text(np.nanpercentile(contingent_pop['Population'], 98.6),
          max(contingent_pop['Contingent']) - 50,
          "Correlation = " + str(correlation),)
 plt.show()
@@ -232,7 +235,7 @@ plt.show()
 
 
 
-#Getting population 
+#Getting population
 year_team_pop = df.loc[:, ['Year', 'Team', 'Population']].drop_duplicates()
 print(year_team_pop.head())
 
@@ -267,7 +270,7 @@ print(medal_pop_contingent.head().to_string())
 
 #Models using the logarithm of population and contingent size
 print('Models using contingent size and log of population')
-y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent', 
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent',
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
@@ -298,7 +301,7 @@ print('R-squared score:', neighbs[2])
 
 #Models using the logarithm of population, contingent size and team
 print('\nModels using contingent size, log of population and team')
-y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent + Team', 
+y, X = dmatrices('Medal_Won_Corrected ~ Log_Population + Contingent + Team',
                  data = medal_pop_contingent,
                  return_type = 'dataframe')
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.1, random_state=42)
@@ -316,9 +319,69 @@ for i in range(1,50):
     y_pred = neigh.predict(X_test)
     rmse = sqrt(metrics.mean_squared_error(y_test, y_pred))
     r2 = metrics.r2_score(y_test, y_pred)
-    if rmse > neighbs[1]:
+    if rmse < neighbs[1]:
         neighbs = [i, rmse, r2]
 print("KNN")
 print('Neighbours used:', neighbs[0])
 print('Root mean squared error (RMSE):', neighbs[1])
 print('R-squared score:', neighbs[2])
+
+
+
+
+
+
+
+
+
+
+#End of predictive models
+
+#Start of interactive visualisations
+
+
+
+
+
+
+
+
+
+
+# Output inline in the notebook
+output_file('Interactive Visualisation.html', title='Interactive Visualisation')
+
+# Store the data in a ColumnDataSource
+cds = ColumnDataSource(medal_pop_contingent.loc[:, ['Contingent', 'Population', 'Medal_Won_Corrected', 'Team', 'Year']])
+
+#Configure tools
+hover = HoverTool(tooltips = [("Index", "@index"),
+                              ("Team", "@Team"),
+                              ("Year", "@Year"),
+                              ("Population", "@Population"),
+                              ("Contingent Size", "@Contingent"),
+                              ("Medal Tally", "@Medal_Won_Corrected")])
+toolList = [hover, 'redo,undo,click,pan,wheel_zoom,box_zoom,reset,box_select,lasso_select,tap,save']
+
+#Draw first plot
+contingent_plot = figure(title='Contingent Size vs Medal Tally',
+                plot_height=650, plot_width=650, tools=toolList,
+                x_axis_label='Contingent Size', y_axis_label='Medal Tally')
+contingent_plot.circle(x='Contingent', y='Medal_Won_Corrected', source=cds,
+              size=7, color='navy', alpha=0.4, line_color="black", line_width=1)
+contingent_plot.title.align = "center"
+
+#Draw second plot
+pop_plot = figure(title='Population vs Medal Tally',
+                plot_height=650, plot_width=650, tools=toolList,
+                x_axis_label='Population', y_axis_label='Medal Tally')
+pop_plot.square(x='Population', y='Medal_Won_Corrected', source=cds,
+              size=7, color='green', alpha=0.4,line_color="black", line_width=1)
+pop_plot.xaxis[0].formatter = PrintfTickFormatter(format="%4.1e")
+pop_plot.title.align = "center"
+
+# Create layout
+grid = gridplot([[contingent_plot, pop_plot]])
+
+# Visualize
+show(grid)
