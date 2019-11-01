@@ -15,7 +15,7 @@ df = df.dropna()
 
 
 
-'''
+
 #Plotting height/weight of medal winners
 all_sports = df['Sport'].unique()
 print(len(all_sports))
@@ -39,7 +39,7 @@ for sport in all_sports:
     plt.xlabel('Weight (kg)')
     plt.ylabel('Height (cm)')
     plt.show()
-'''
+
 
 
 
